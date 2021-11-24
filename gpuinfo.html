@@ -1,0 +1,59 @@
+<html>
+
+<head>
+  <title>GPU Info</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script defer id="ace" src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.13/ace.js"></script>
+</head>
+
+<body>
+  <div id="app">
+    <input v-model="hostname">
+    <pre id="code" style="height: 100%; font-size: 1.25em"></pre>
+  </div>
+
+  <script>
+    const vueobj = new Vue({
+      el: "#app",
+      data: {
+        hostname: "localhost",
+        ws: null,
+      },
+      mounted() {
+        const vm = this;
+        const ace_script = document.querySelector("#ace");
+        ace_script.onload = () => {
+          vm.editor = ace.edit("code");
+          vm.editor.setKeyboardHandler("ace/keyboard/sublime");
+          vm.editor.session.setMode("ace/mode/javascript");
+        };
+      },
+      watch: {
+        hostname: {
+          immediate: true,
+          handler(new_host, old_host) {
+            const vm = this
+            if (vm.ws) {
+              vm.ws.close()
+            }
+            vm.ws = new WebSocket(`ws://${new_host}:24880/wsapi/sub`)
+            vm.ws.onopen = () => {
+              vm.ws.send(JSON.stringify({
+                topic: "gpuinfo",
+                init: "MOST_RECENT",
+                iter: "NEWEST",
+              }))
+            }
+            vm.ws.onmessage = (evt) => {
+              const payload = JSON.parse(JSON.parse(evt.data).payload);
+              vm.editor.setValue(JSON.stringify(payload, null, "  "), 1);
+            }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>
