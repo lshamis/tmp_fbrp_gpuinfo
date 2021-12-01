@@ -20,4 +20,23 @@ fbrp.process(
     runtime=fbrp.Docker(image="ghcr.io/alephzero/api:latest"),
 )
 
+fbrp.process(
+    name="logger",
+    runtime=fbrp.Docker(
+        image="ghcr.io/alephzero/log:latest",
+        mount=["/tmp/logs:/tmp/logs"],
+    ),
+    cfg={
+        "savepath": "/tmp/logs",
+        "default_max_logfile_duration": "2m",
+        "rules": [
+            {
+                "protocol": "pubsub",
+                "topic": "gpuinfo",
+                "policies": [{"type": "save_all"}],
+            }
+        ],
+    },
+)
+
 fbrp.main()
